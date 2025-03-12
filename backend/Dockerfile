@@ -1,5 +1,11 @@
 FROM python:3.9-slim
 
+# build dependencies for bcrypt
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt .

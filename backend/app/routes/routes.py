@@ -5,6 +5,7 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 from dotenv import load_dotenv
+from bson.errors import InvalidId
 import os
 
 # Load environment variables
@@ -60,21 +61,21 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return UserInDB(**convert_object_id_to_str(user))
 
 # User Routes
-@router.post("/signup")
+@router.post("/signup", response_model=dict)
 async def signup(user: User):
     existing_user = db.users.find_one({"email": user.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = get_password_hash(user.password)
-    user_dict = user.model_dump_json()
+    user_dict = user.model_dump()
     user_dict["hashed_password"] = hashed_password
     del user_dict["password"]
 
     db.users.insert_one(user_dict)
     return {"message": "User created successfully"}
 
-@router.post("/login")
+@router.post("/login", response_model=dict)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = db.users.find_one({"email": form_data.username})
     if not user or not verify_password(form_data.password, user["hashed_password"]):
@@ -89,7 +90,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # Book Routes
 @router.post("/books")
 async def add_book(book: Book, current_user: UserInDB = Depends(get_current_user)):
-    book_dict = book.dict()
+    book_dict = book.model_dump()
     book_dict["user_id"] = current_user.id
     db.books.insert_one(book_dict)
     return {"message": "Book added successfully"}
@@ -111,7 +112,13 @@ async def update_book_status(book_id: str, status: str, current_user: UserInDB =
 
 @router.delete("/books/{book_id}")
 async def delete_book(book_id: str, current_user: UserInDB = Depends(get_current_user)):
-    result = db.books.delete_one({"_id": ObjectId(book_id), "user_id": current_user.id})
+    try:
+        book_obj_id = ObjectId(book_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid book ID format")
+    
+    result = db.books.delete_one({"_id": book_obj_id, "user_id": current_user.id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Book not found")
+    
     return {"message": "Book deleted"}

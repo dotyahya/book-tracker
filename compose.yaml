@@ -1,0 +1,47 @@
+services:
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "5173:5173"  # React Vite runs on 5173, not 3000 (unless changed in package.json)
+  #   networks:
+  #     - book-network
+  #   depends_on:
+  #     - backend
+  #   environment:
+  #     - REACT_APP_API_URL=http://backend:8000
+  #   env_file:
+  #     - .env  # Load environment variables from .env
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    networks:
+      - book-network
+    depends_on:
+      - mongodb
+    env_file:
+      - .env  # Loads .env variables
+    environment:
+      - MONGO_URI=${MONGO_URI}  # Reads from .env
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - book-network
+    environment:
+      MONGO_INITDB_DATABASE: booktracker
+
+volumes:
+  mongo-data:
+
+networks:
+  book-network:
+    driver: bridge

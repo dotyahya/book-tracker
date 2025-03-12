@@ -16,8 +16,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Import routes
-from app.routes import router
+from app.routes.routes import router
 app.include_router(router, prefix="/api")
 
 @app.get("/")
