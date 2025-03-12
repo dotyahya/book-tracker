@@ -1,6 +1,7 @@
 from pymongo import MongoClient
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from dotenv import load_dotenv
+from bson import ObjectId
 import os
 
 #  env variables
@@ -19,9 +20,14 @@ class User(BaseModel):
     email: EmailStr
     password: str
 
-class UserInDB(User):
-    id: str
-    hashed_password: str
+class UserInDB(BaseModel):
+    id: str = Field(..., alias="_id")  # Map MongoDB's '_id' to 'id'
+    email: EmailStr
+    hashed_password: str = Field(..., alias="hashed_password")  # Match DB field
+
+    class Config:
+        populate_by_name = True  # Allow field names from aliases
+        arbitrary_types_allowed = True
 
 class Book(BaseModel):
     title: str
@@ -35,8 +41,6 @@ class BookInDB(Book):
 
 # helper function to convert MongoDB ObjectId to string
 def convert_object_id_to_str(data):
-    if isinstance(data, list):
-        return [{**item, "_id": str(item["_id"])} for item in data]
-    elif isinstance(data, dict):
-        return {**data, "_id": str(data["_id"])}
+    if isinstance(data, dict):
+        return {k: str(v) if isinstance(v, ObjectId) else v for k, v in data.items()}
     return data

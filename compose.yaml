@@ -27,6 +27,14 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - __pycache__/
 
   mongodb:
     image: mongo:latest
